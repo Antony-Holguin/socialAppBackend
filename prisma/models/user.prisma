@@ -7,4 +7,7 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
+  tasks         Task[]
+
+  @@map("users")
 }
