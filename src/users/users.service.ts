@@ -22,7 +22,7 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto) {
     const passwordHash = await this.passwords.hash(createUserDto.password);
-    return this.prisma.user.create({
+    return await this.prisma.user.create({
       data: {
         ...createUserDto,
         password: passwordHash,
@@ -31,31 +31,31 @@ export class UsersService {
     });
   }
 
-  findAll() {
-    return this.prisma.user.findMany({ select: this.publicSelect });
+  async findAll() {
+    return await this.prisma.user.findMany({ select: this.publicSelect });
   }
 
-  findOne(id: number) {
-    return this.prisma.user.findUnique({
+  async findOne(id: number) {
+    return await this.prisma.user.findUnique({
       where: { id },
       select: this.publicSelect,
     });
   }
 
-  findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+  async findByEmail(email: string) {
+    return await this.prisma.user.findUnique({ where: { email } });
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return this.prisma.user.update({
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    return await this.prisma.user.update({
       where: { id },
       data: updateUserDto,
       select: this.publicSelect,
     });
   }
 
-  remove(id: number) {
-    return this.prisma.user.delete({
+  async remove(id: number) {
+    return await this.prisma.user.delete({
       where: { id },
       select: this.publicSelect,
     });

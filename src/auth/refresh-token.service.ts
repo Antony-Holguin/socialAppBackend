@@ -31,7 +31,7 @@ export class RefreshTokenService {
 
   /** Persist a brand-new hashed refresh token for a user. */
   async create(userId: number, plain: string): Promise<RefreshToken> {
-    return this.prisma.refreshToken.create({
+    return await this.prisma.refreshToken.create({
       data: {
         userId,
         hash: this.hash(plain),
@@ -42,7 +42,7 @@ export class RefreshTokenService {
 
   /** Look up an active (non-revoked, non-expired) refresh by its plain value. */
   async findActive(plain: string): Promise<RefreshToken | null> {
-    return this.prisma.refreshToken.findFirst({
+    return await this.prisma.refreshToken.findFirst({
       where: {
         hash: this.hash(plain),
         revokedAt: null,

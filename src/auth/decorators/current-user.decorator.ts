@@ -1,9 +1,11 @@
 import { ExecutionContext, createParamDecorator } from '@nestjs/common';
-import type { Request } from 'express';
 import type { JwtUser } from '../types/jwt-payload.type';
 
 /**
  * Extracts the JWT user attached by `JwtStrategy.validate()` (i.e. `req.user`).
+ *
+ * Relies on `src/types/express.d.ts` which augments Express.Request so that
+ * `req.user` is typed as `JwtUser | undefined` project-wide.
  *
  * @example
  *   @Get('me')
@@ -13,7 +15,7 @@ import type { JwtUser } from '../types/jwt-payload.type';
  */
 export const CurrentUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): JwtUser => {
-    const req = ctx.switchToHttp().getRequest<Request & { user?: JwtUser }>();
+    const req = ctx.switchToHttp().getRequest();
     if (!req.user) {
       throw new Error(
         'CurrentUser() used on a route without JwtAuthGuard. Use @Public() if you really mean it.',
