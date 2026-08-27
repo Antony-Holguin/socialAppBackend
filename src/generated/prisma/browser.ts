@@ -28,6 +28,11 @@ export type RefreshToken = Prisma.RefreshTokenModel
  */
 export type Role = Prisma.RoleModel
 /**
+ * Model Task
+ * 
+ */
+export type Task = Prisma.TaskModel
+/**
  * Model User
  * 
  */

@@ -1,10 +1,10 @@
 model Task{
-    id BigInt @id @default(autoincrement()) 
+    id Int @id @default(autoincrement()) 
     title String
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     active Boolean @default(true)
-    authorId BigInt 
+    authorId Int 
     author User @relation(fields: [authorId], references: [id])
 
     @@map("tasks")
