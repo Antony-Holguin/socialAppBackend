@@ -8,6 +8,8 @@ model User {
   updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
   tasks         Task[]
+  
+  posts         Post[]
 
   @@map("users")
 }

@@ -17,7 +17,10 @@ export class Task {
   @ApiProperty({ example: true })
   active!: boolean;
 
-  @ApiProperty({ example: 1, description: 'ID of the user who created the task' })
+  @ApiProperty({
+    example: 1,
+    description: 'ID of the user who created the task',
+  })
   authorId!: number;
 
   @ApiProperty({ example: '2026-08-26T12:00:00.000Z' })

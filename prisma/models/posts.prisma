@@ -1,0 +1,10 @@
+model Post {
+    id          Int     @id @default(autoincrement())
+    imagePath   String?
+    title       String?
+    description String?
+    userId      Int
+    user        User    @relation(fields: [userId], references: [id])
+
+    @@map("posts")
+}
