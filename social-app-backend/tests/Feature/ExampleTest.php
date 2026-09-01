@@ -1,7 +1,9 @@
 <?php
 
-test('returns a successful response', function () {
-    $response = $this->get(route('home'));
+test('the health endpoint responds ok', function () {
+    $response = $this->getJson(route('api.v1.health'));
 
-    $response->assertOk();
+    $response
+        ->assertOk()
+        ->assertJson(['status' => 'ok']);
 });
