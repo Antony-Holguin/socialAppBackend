@@ -2,17 +2,6 @@
 
 use App\Models\Task;
 use App\Models\User;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
-
-/**
- * Helper: stamp an Authorization header on the next request as the given user.
- * In production the AuthenticateFromCookie middleware lifts the cookie into
- * the same header; the JWT guard is unaware of the difference.
- */
-function authHeader(User $user): array
-{
-    return ['Authorization' => 'Bearer '.JWTAuth::fromUser($user)];
-}
 
 test('a task can be created', function () {
     $user = User::factory()->create();

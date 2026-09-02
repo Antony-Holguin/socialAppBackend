@@ -1,34 +1,33 @@
 <?php
 
+use App\Models\User;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /*
 |--------------------------------------------------------------------------
 | Test Case
 |--------------------------------------------------------------------------
-|
-| The closure you provide to your test functions is always bound to a specific PHPUnit test
-| case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
-| need to change it using the "pest()" function to bind different classes or traits.
-|
 */
-
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(function () {
+        // Spatie caches permission lookups in a static array for the lifetime
+        // of the process. Without flushing it, role/permission changes made
+        // in one test leak into the next.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    })
     ->in('Feature');
 
 /*
 |--------------------------------------------------------------------------
 | Expectations
 |--------------------------------------------------------------------------
-|
-| When you're writing tests, you often need to check that values meet certain conditions. The
-| "expect()" function gives you access to a set of "expectations" methods that you can use
-| to assert different things. Of course, you may extend the Expectation API at any time.
-|
 */
-
 expect()->extend('toBeOne', function () {
     return $this->toBe(1);
 });
@@ -37,12 +36,30 @@ expect()->extend('toBeOne', function () {
 |--------------------------------------------------------------------------
 | Functions
 |--------------------------------------------------------------------------
-|
-| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
-| project that you don't want to repeat in every file. Here you can also expose helpers as
-| global functions to help you to reduce the number of lines of code in your test files.
-|
 */
+
+/**
+ * Stamp an Authorization header as the given user. Used by every CRUD test.
+ * Defined here (not per-file) because Pest loads every test file into one
+ * process — declaring it twice is a fatal "Cannot redeclare" error.
+ */
+function authHeader(User $user): array
+{
+    return ['Authorization' => 'Bearer '.JWTAuth::fromUser($user)];
+}
+
+/**
+ * Run the permission + role seeders and assign a role to the user. Cheaper
+ * than booting the seeder class in every test that needs an admin.
+ */
+function asUserWithRole(User $user, string $role): User
+{
+    (new PermissionSeeder)->run();
+    (new RoleSeeder)->run();
+    $user->assignRole($role);
+
+    return $user->refresh()->load('roles.permissions');
+}
 
 function something()
 {

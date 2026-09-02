@@ -10,16 +10,22 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Permissions + roles first — users created below may be assigned roles.
+        $this->call([
+            PermissionSeeder::class,
+            RoleSeeder::class,
+        ]);
 
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Promote the seed user to admin so the management UI is reachable
+        // immediately after `migrate:fresh --seed`. Remove this block if you
+        // want a clean slate with no admin.
+        User::firstWhere('email', 'test@example.com')?->assignRole('admin');
     }
 }

@@ -93,11 +93,14 @@ class AuthService
 
     /**
      * The authenticated user — throws if the JWT guard couldn't resolve one.
+     * Eager-loads roles + permissions so the response shape carries them
+     * without an N+1.
      */
     public function currentUser(): User
     {
         /** @var User $user */
         $user = JWTAuth::user();
+        $user->load('roles.permissions');
 
         return $user;
     }
@@ -106,16 +109,27 @@ class AuthService
      * Sakai-compatible AuthUserView — camelCase, exactly what the
      * TypeScript `AuthUser` interface expects.
      *
+     * Always includes `roles` + `permissions` so login/register responses
+     * have the same shape as /auth/me — the frontend never needs to re-fetch
+     * after login to know what the user can do.
+     *
      * @return array<string, mixed>
      */
     public function userView(User $user): array
     {
+        if (! $user->relationLoaded('roles')) {
+            $user->load('roles.permissions');
+        }
+
         return [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'active' => (bool) $user->active,
             'createdAt' => $user->created_at?->toIso8601String(),
+            'roles' => $user->roles->pluck('name')->values(),
+            'permissions' => $user->roles
+                ->flatMap->permissions->pluck('name')->unique()->values(),
         ];
     }
 }

@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class TaskController extends Controller
@@ -49,7 +48,7 @@ class TaskController extends Controller
         $task = $this->tasks->findForUser($this->user(), $id);
 
         return $task === null
-            ? $this->notFound($id)
+            ? $this->notFound('Task', $id)
             : response()->json(TaskResource::make($task));
     }
 
@@ -58,7 +57,7 @@ class TaskController extends Controller
         $task = $this->tasks->update($this->user(), $id, $request->validated());
 
         return $task === null
-            ? $this->notFound($id)
+            ? $this->notFound('Task', $id)
             : response()->json(TaskResource::make($task));
     }
 
@@ -67,7 +66,7 @@ class TaskController extends Controller
         $task = $this->tasks->softDelete($this->user(), $id);
 
         return $task === null
-            ? $this->notFound($id)
+            ? $this->notFound('Task', $id)
             : response()->json(TaskResource::make($task));
     }
 
@@ -76,21 +75,8 @@ class TaskController extends Controller
         $task = $this->tasks->restore($this->user(), $id);
 
         return $task === null
-            ? $this->notFound($id)
+            ? $this->notFound('Task', $id)
             : response()->json(TaskResource::make($task));
-    }
-
-    /**
-     * 404 response — owner-mismatch is rendered as "not found" so
-     * callers can't enumerate ids via a 403-vs-404 oracle.
-     */
-    protected function notFound(int $id): JsonResponse
-    {
-        return response()->json([
-            'statusCode' => 404,
-            'message' => "Task #{$id} not found",
-            'error' => 'Not Found',
-        ], Response::HTTP_NOT_FOUND);
     }
 
     protected function user(): User

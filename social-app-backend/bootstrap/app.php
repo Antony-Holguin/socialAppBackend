@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -33,6 +35,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // JWT guard can authenticate the request without any custom guard code.
         $middleware->api(prepend: [
             AuthenticateFromCookie::class,
+        ]);
+
+        // Spatie's middleware for `role:...` and `permission:...` route guards.
+        $middleware->alias([
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

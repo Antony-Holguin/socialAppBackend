@@ -57,7 +57,16 @@ class TaskService
         }
 
         if ($request->has('active')) {
-            $query->where('active', filter_var($request->input('active'), FILTER_VALIDATE_BOOLEAN));
+            $value = $request->input('active');
+            // `active=all` (or any non-truthy non-falsy value) → both states.
+            // `active=true|false|1|0` → just that state.
+            if ($value !== 'all') {
+                $query->where('active', filter_var($value, FILTER_VALIDATE_BOOLEAN));
+            }
+        } else {
+            // No filter → only active rows. The default view must hide
+            // soft-deleted (inactive) records.
+            $query->where('active', true);
         }
 
         if (($q = $request->input('q')) !== null && $q !== '') {
