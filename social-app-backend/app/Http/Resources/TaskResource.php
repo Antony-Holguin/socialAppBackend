@@ -2,17 +2,18 @@
 
 namespace App\Http\Resources;
 
-use App\Models\User;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin User
+ * @mixin Task
  */
-class UserResource extends JsonResource
+class TaskResource extends JsonResource
 {
     /**
-     * Sakai-compatible AuthUserView shape — camelCase.
+     * Sakai-compatible Task shape — camelCase, exactly what the TypeScript
+     * `Task` interface expects.
      *
      * @return array<string, mixed>
      */
@@ -20,10 +21,11 @@ class UserResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'email' => $this->email,
+            'title' => $this->title,
             'active' => (bool) $this->active,
+            'authorId' => $this->author_id,
             'createdAt' => $this->created_at?->toIso8601String(),
+            'updatedAt' => $this->updated_at?->toIso8601String(),
         ];
     }
 }

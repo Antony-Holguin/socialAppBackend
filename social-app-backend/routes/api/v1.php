@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\TaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -10,13 +10,12 @@ use Illuminate\Support\Facades\Route;
 | API v1 Routes
 |--------------------------------------------------------------------------
 |
-| Mounted under the `/v1` prefix (see apiPrefix in bootstrap/app.php). This
-| file contains every v1 endpoint; future breaking changes live in
-| routes/api/v2.php, leaving v1 untouched for clients still on it.
+| Mounted under the `/api/v1` prefix (see apiPrefix in bootstrap/app.php).
+| Future breaking changes live in routes/api/v2.php, leaving v1 untouched.
 |
 */
 
-// Public health probe — useful for uptime checks and orchestration tooling.
+// Public health probe.
 Route::get('/health', fn () => response()->json([
     'status' => 'ok',
     'service' => config('app.name'),
@@ -27,23 +26,30 @@ Route::get('/health', fn () => response()->json([
 Route::prefix('auth')->name('api.v1.auth.')->group(function (): void {
     Route::post('/register', [AuthController::class, 'register'])->name('register');
     Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
 
     // Authenticated sub-routes.
     Route::middleware('auth:api')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-        Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
     });
 });
 
-// Authenticated example resource — replace with the application's own
-// controllers once the domain is in place.
-Route::middleware('auth:api')->group(function (): void {
-    Route::get('/user', [UserController::class, 'show'])->name('api.v1.user.show');
+// Tasks — owner-scoped CRUD. The `/mine` route MUST be declared before
+// `/{id}` so 'mine' is not consumed as an integer parameter.
+Route::prefix('tasks')->name('api.v1.tasks.')->middleware('auth:api')->group(function (): void {
+    Route::get('/mine', [TaskController::class, 'mine'])->name('mine');
+    Route::get('/', [TaskController::class, 'index'])->name('index');
+    Route::post('/', [TaskController::class, 'store'])->name('store');
+    Route::get('/{id}', [TaskController::class, 'show'])->name('show')->whereNumber('id');
+    Route::patch('/{id}', [TaskController::class, 'update'])->name('update')->whereNumber('id');
+    Route::delete('/{id}', [TaskController::class, 'destroy'])->name('destroy')->whereNumber('id');
+    Route::patch('/{id}/restore', [TaskController::class, 'restore'])->name('restore')->whereNumber('id');
 });
 
 Route::fallback(fn (Request $request) => response()->json([
+    'statusCode' => 404,
     'message' => 'The requested endpoint does not exist.',
-    'version' => 'v1',
+    'error' => 'Not Found',
     'path' => $request->path(),
 ], 404));

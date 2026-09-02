@@ -3,123 +3,96 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Cookie\CookieService;
 use App\Http\Requests\Api\Auth\LoginRequest;
 use App\Http\Requests\Api\Auth\RegisterRequest;
-use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
-use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        protected AuthService $auth,
+        protected CookieService $cookies,
+    ) {}
+
     /**
-     * Register a new user and issue an access token in the same response.
+     * Create a new user and stamp httpOnly auth cookies.
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        $data = $request->validated();
+        $result = $this->auth->register($request->validated());
 
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => $data['password'],
-        ]);
-
-        $token = JWTAuth::fromUser($user);
-
-        return $this->tokenResponse($token, $user, 201);
+        return $this->respondWithAuth($result['user'], $result['token'], 201);
     }
 
     /**
-     * Authenticate an existing user and issue an access token.
+     * Exchange email+password for httpOnly auth cookies.
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validated();
+        $result = $this->auth->attempt($request->validated());
 
-        try {
-            $token = JWTAuth::attempt($credentials);
-        } catch (JWTException $e) {
+        if ($result === null) {
             return response()->json([
-                'message' => 'Could not issue token. Please try again.',
-            ], 500);
-        }
-
-        if (! $token) {
-            return response()->json([
-                'message' => 'The provided credentials are incorrect.',
+                'statusCode' => 401,
+                'message' => 'Invalid credentials',
+                'error' => 'Unauthorized',
             ], 401);
         }
 
-        /** @var User $user */
-        $user = JWTAuth::user();
-
-        return $this->tokenResponse($token, $user);
+        return $this->respondWithAuth($result['user'], $result['token']);
     }
 
     /**
-     * Return the authenticated user's profile.
-     */
-    public function me(): JsonResponse
-    {
-        /** @var User $user */
-        $user = JWTAuth::user();
-
-        return response()->json([
-            'data' => UserResource::make($user),
-        ]);
-    }
-
-    /**
-     * Invalidate the current JWT.
-     */
-    public function logout(): JsonResponse
-    {
-        try {
-            JWTAuth::invalidate(JWTAuth::getToken());
-        } catch (JWTException $e) {
-            return response()->json([
-                'message' => 'Could not invalidate token.',
-            ], 500);
-        }
-
-        return response()->json([
-            'message' => 'Logged out successfully.',
-        ]);
-    }
-
-    /**
-     * Issue a fresh token using the current (still-valid) one and invalidate
-     * the old one. Implements the refresh-rotation pattern recommended for
-     * stateless JWT APIs.
+     * Rotate the JWT using the refresh cookie. Re-stamps both cookies.
      */
     public function refresh(): JsonResponse
     {
-        try {
-            $newToken = JWTAuth::refresh(JWTAuth::getToken());
-        } catch (JWTException $e) {
+        $result = $this->auth->refresh();
+
+        if ($result === null) {
             return response()->json([
-                'message' => 'Could not refresh token.',
+                'statusCode' => 401,
+                'message' => 'Invalid refresh token',
+                'error' => 'Unauthorized',
             ], 401);
         }
 
-        /** @var User $user */
-        $user = JWTAuth::user();
-
-        return $this->tokenResponse($newToken, $user);
+        return response()
+            ->json($this->auth->userView($result['user']))
+            ->withCookies($this->cookies->setAuthCookies($result['token'], $result['token']));
     }
 
     /**
-     * Shape the standard token response (RFC-6750 bearer + user payload).
+     * Invalidate the current token and clear both auth cookies.
      */
-    protected function tokenResponse(string $token, User $user, int $status = 200): JsonResponse
+    public function logout(): JsonResponse
     {
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => JWTAuth::factory()->getTTL() * 60,
-            'user' => UserResource::make($user),
-        ], $status);
+        $this->auth->logout();
+
+        return response()
+            ->json(['success' => true])
+            ->withCookies($this->cookies->clearAuthCookies());
+    }
+
+    /**
+     * Return the authenticated user.
+     */
+    public function me(): JsonResponse
+    {
+        return response()->json($this->auth->userView($this->auth->currentUser()));
+    }
+
+    /**
+     * Shape the standard successful-auth response: user view in the body,
+     * both auth cookies on the response.
+     */
+    protected function respondWithAuth(User $user, string $token, int $status = 200): JsonResponse
+    {
+        return response()
+            ->json($this->auth->userView($user), $status)
+            ->withCookies($this->cookies->setAuthCookies($token, $token));
     }
 }
